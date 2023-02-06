@@ -10,11 +10,13 @@
   "author": "Baptiste Arnaud",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^4.9.0"
+    "@prisma/client": "^4.9.0",
+    "cli-progress": "^3.11.2"
   },
   "devDependencies": {
     "@prisma/generator-helper": "^4.9.0",
     "@prisma/sdk": "^4.0.0",
+    "@types/cli-progress": "^3.11.0",
     "@types/node": "^18.11.19",
     "prisma": "^4.9.0",
     "tsx": "^3.12.3"

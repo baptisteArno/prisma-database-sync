@@ -1,6 +1,7 @@
 import { PrismaClient } from "./prisma-clients/source";
 import { models } from "./prisma-clients/source/utils";
 import { createWriteStream, readdirSync } from "fs";
+import { SingleBar, Presets } from "cli-progress";
 
 type ModelName = keyof typeof models;
 
@@ -71,6 +72,8 @@ const extractRecords = async (
   let skip = 0;
   let batch = [];
   let i = 1;
+  const progressBar = new SingleBar({}, Presets.legacy);
+  progressBar.start(totalRecords, 0);
   do {
     skip += take;
     batch = await prismaRecord.findMany({
@@ -81,10 +84,11 @@ const extractRecords = async (
     });
     stream.write(JSON.stringify(batch).slice(1, -1));
     if (batch.length > 0) stream.write(",");
-    console.log(`Progress: ${Math.round(((i * take) / totalRecords) * 100)}%`);
+    progressBar.update((i * take) / totalRecords);
     i += 1;
   } while (batch.length > 0);
 
   stream.write("]");
   stream.end();
+  progressBar.stop();
 };
