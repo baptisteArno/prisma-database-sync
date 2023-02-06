@@ -1,0 +1,23 @@
+{
+  "name": "prisma-database-sync",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "generate": "prisma generate --schema src/source.prisma && prisma generate --schema src/target.prisma"
+  },
+  "keywords": [],
+  "author": "Baptiste Arnaud",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^4.9.0"
+  },
+  "devDependencies": {
+    "@prisma/generator-helper": "^4.9.0",
+    "@prisma/sdk": "^4.0.0",
+    "@types/node": "^18.11.19",
+    "prisma": "^4.9.0",
+    "tsx": "^3.12.3"
+  },
+  "packageManager": "pnpm@7.25.1"
+}
