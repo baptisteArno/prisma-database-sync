@@ -10,4 +10,24 @@
   <h1 align="center">Prisma Databases Sync</h1>
 </p>
 
-WIP
+## Features
+
+- Sync data from and to any database (PostgreSQL, MySQL, MongoDB etc...) as long as it is supported by Prisma
+- Incremental sync, based on date fileds. To avoid dumping all the data every time.
+- Migrate your production database without downtime
+
+## Get started
+
+1. Clone the repository
+2. Run `pnpm install`
+3. Copy `.env.example` to `.env` and fill it with your database URLs
+4. Edit `src/source.prisma` and `src/target.prisma` with your schemas. Make sure it contains:
+
+   ```
+   generator utils {
+     provider = "pnpm tsx src/generatePrismaUtilsTypes.ts"
+     output   = "prisma-clients/target"
+   }
+   ```
+
+5.
