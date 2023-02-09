@@ -3,7 +3,6 @@ import { dump } from "./dump";
 import { inject } from "./inject";
 import { sync } from "./sync";
 import * as dotenv from "dotenv";
-import { tableOrder } from "./config";
 
 dotenv.config();
 
@@ -36,15 +35,13 @@ export const main = async () => {
 
   switch (action) {
     case "sync":
-      sync({ order: tableOrder });
+      sync();
       break;
     case "dump":
       await dump();
       break;
     case "inject":
-      await inject({
-        order: tableOrder,
-      });
+      await inject();
       break;
   }
 };

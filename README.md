@@ -14,7 +14,7 @@ I implemented this CLI because I had to migrate from a PostgreSQL database to a 
 
 1. Clone the repository
 2. Copy `.env.example` to `.env` and fill it with your database URLs
-3. Edit `src/source.prisma` and `src/target.prisma` with your schemas. Make sure it contains:
+3. Edit `src/schemas/source.prisma` and `src/schemas/target.prisma` with your schemas. Make sure it contains:
 
    ```
    generator utils {

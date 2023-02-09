@@ -1,9 +1,0 @@
-generator client {
-  provider = "prisma-client-js"
-  output   = "prisma-clients/target"
-}
-
-generator utils {
-  provider = "pnpm tsx src/generatePrismaUtilsTypes.ts"
-  output   = "prisma-clients/target"
-}

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "generate": "prisma generate --schema src/source.prisma && prisma generate --schema src/target.prisma",
+    "generate": "prisma generate --schema src/schemas/source.prisma && prisma generate --schema src/schemas/target.prisma",
     "reset:source": "prisma migrate reset --schema src/source.prisma",
     "reset:target": "prisma migrate reset --schema src/target.prisma",
     "start": "tsx src/index.ts",

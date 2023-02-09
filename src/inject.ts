@@ -15,8 +15,8 @@ import { join } from "path";
 import { streamArray } from "stream-json/streamers/StreamArray";
 import { parser } from "stream-json";
 import { Presets, SingleBar } from "cli-progress";
-import { parseProgressBarFormat } from "./utils";
 import { chain } from "stream-chain";
+import { parseProgressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
 

@@ -1,0 +1,14 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../prisma-clients/source"
+}
+
+generator utils {
+  provider = "pnpm tsx src/schemas/generatePrismaUtilsTypes.ts"
+  output   = "../prisma-clients/source"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SOURCE_DATABASE_URL")
+}

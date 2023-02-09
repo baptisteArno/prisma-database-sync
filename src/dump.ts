@@ -4,7 +4,7 @@ import { createWriteStream, existsSync, readFileSync } from "fs";
 import { SingleBar, Presets } from "cli-progress";
 import { join } from "path";
 import { mkdir, readdir } from "fs/promises";
-import { parseProgressBarFormat } from "./utils";
+import { parseProgressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
 
