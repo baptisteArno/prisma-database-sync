@@ -13,25 +13,71 @@ generatorHandler({
     } satisfies GeneratorManifest;
   },
   onGenerate: async (options: GeneratorOptions) => {
-    const models = options.dmmf.datamodel.models.map((model) => ({
-      name: camelize(model.name),
-      dateFields: model.fields
-        .filter((field) => field.type === "DateTime")
-        .map((field) => field.name),
-    }));
+    const models = options.dmmf.datamodel.models.map((model) => {
+      const idFields = model.fields.filter((field) => field.isId);
+      const uniqueFields = model.fields.filter((field) => field.isUnique);
+      const groupedUniqueFields = model.uniqueFields.shift();
+      return {
+        name: camelize(model.name),
+        incrementalField:
+          model.fields.find((field) => field.isUpdatedAt)?.name ??
+          model.fields.find(
+            (field) =>
+              field.isUpdatedAt ||
+              (field.type === "DateTime" &&
+                typeof field.default === "object" &&
+                "name" in field.default &&
+                field.default?.name === "now")
+          )?.name,
+        uniqueFields:
+          idFields.length > 0
+            ? idFields.map((field) => field.name)
+            : uniqueFields.length > 0
+            ? uniqueFields.map((field) => field.name)
+            : groupedUniqueFields,
+        nullableJsonFields: model.fields
+          .filter(
+            (field) => field.type === "Json" && field.isRequired === false
+          )
+          .map((field) => field.name),
+      };
+    });
 
     writeFileSync(
       join(options.generator.output?.value, "utils.ts"),
-      `export const models = ${`{${models
+      `export const incrementalFieldInModel = ${`{${models
         .map(
           (model) =>
             `${model.name}: ${
-              model.dateFields.length === 0
-                ? "[]"
-                : JSON.stringify(model.dateFields)
+              model.incrementalField
+                ? `"${model.incrementalField}"`
+                : "undefined"
             }`
         )
-        .join(", ")}}`} as const;`
+        .join(", ")}}`} as const;
+
+export const uniqueFields = ${`{${models
+        .map(
+          (model) =>
+            `${model.name}: ${
+              model.uniqueFields.length === 0
+                ? "[]"
+                : JSON.stringify(model.uniqueFields)
+            }`
+        )
+        .join(", ")}}`};
+        
+export const nullableJsonFields = ${`{${models
+        .map(
+          (model) =>
+            `${model.name}: ${
+              model.nullableJsonFields.length === 0
+                ? "[]"
+                : JSON.stringify(model.nullableJsonFields)
+            }`
+        )
+        .join(", ")}}`};
+`
     );
   },
 });
