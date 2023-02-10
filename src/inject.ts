@@ -14,9 +14,9 @@ import {
 import { join } from "path";
 import { streamArray } from "stream-json/streamers/StreamArray";
 import { parser } from "stream-json";
-import { Presets, SingleBar } from "cli-progress";
+import { MultiBar, Presets } from "cli-progress";
 import { chain } from "stream-chain";
-import { parseProgressBarFormat } from "./utils/parseProgressBarFormat";
+import { progressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
 
@@ -27,8 +27,9 @@ const prisma = new PrismaClient({
 let isFirstInject = true;
 const injectionLogFileName = "latestSnapshotInjected.log";
 const snapshotsPath = join(__dirname, "snapshots");
-const connectionLimit = 100;
-const chunkSize = 1000;
+
+const parallelQueries = 100;
+const totalRowsPerQuery = 1000;
 
 export type InjectProps = {
   includeTables?: ModelName[];
@@ -40,6 +41,10 @@ export type InjectProps = {
  * Inject the previously imported snapshots chronologically
  */
 export const inject = async (props?: InjectProps) => {
+  const progressBar = new MultiBar(
+    { format: progressBarFormat },
+    Presets.legacy
+  );
   isFirstInject = true;
   const modelsToInject = readdirSync(snapshotsPath) as ModelName[];
   const modelNames = (props?.order ?? [])
@@ -48,7 +53,7 @@ export const inject = async (props?: InjectProps) => {
         props?.order ? !props.order.includes(modelName) : true
       )
     )
-    .filter(filterModelName(props.includeTables, props.excludeTables))
+    .filter(filterModelName(props?.includeTables, props?.excludeTables))
     .filter((modelName) => modelsToInject.includes(modelName));
   for (const modelName of modelNames) {
     const logPath = join(
@@ -76,12 +81,21 @@ export const inject = async (props?: InjectProps) => {
       console.log("\n------------------ Injecting ------------------\n");
     }
     for (const snapshotToInject of snapshotsToInject) {
-      await injectRecords(modelName as ModelName, snapshotToInject);
+      await injectRecords(
+        modelName as ModelName,
+        snapshotToInject,
+        progressBar
+      );
     }
   }
+  progressBar.stop();
 };
 
-const injectRecords = async (modelName: ModelName, snapshotDate: Date) =>
+const injectRecords = async (
+  modelName: ModelName,
+  snapshotDate: Date,
+  progressBar
+) =>
   new Promise<void>(async (resolve, reject) => {
     const filePath = join(
       snapshotsPath,
@@ -91,11 +105,8 @@ const injectRecords = async (modelName: ModelName, snapshotDate: Date) =>
 
     const listSize = await computeListSize(filePath);
 
-    const progressBar = new SingleBar(
-      { format: parseProgressBarFormat(modelName) },
-      Presets.legacy
-    );
-    progressBar.start(listSize, 0);
+    const progress = progressBar.create(listSize, 0);
+    progress.update(0, { modelName });
 
     let fillingChunk: any[] = [];
     let chunks: any[][] = [];
@@ -107,23 +118,22 @@ const injectRecords = async (modelName: ModelName, snapshotDate: Date) =>
       streamArray(),
       async ({ key, value }: { key: number; value: object }) => {
         fillingChunk.push(value);
-        if (fillingChunk.length === chunkSize || key === listSize - 1) {
+        if (fillingChunk.length === totalRowsPerQuery || key === listSize - 1) {
           chunks.push(fillingChunk);
           fillingChunk = [];
         }
-        if (key === listSize - 1 || chunks.length === connectionLimit) {
+        if (key === listSize - 1 || chunks.length === parallelQueries) {
           await Promise.all(
             chunks.map((chunk) =>
               injectRecordsBatch(chunk, modelName, snapshotDate)
             )
           );
           totalInjected += chunks.reduce((acc, cur) => acc + cur.length, 0);
-          progressBar.update(totalInjected);
+          progress.update(totalInjected);
           chunks = [];
           fillingChunk = [];
         }
         if (key === listSize - 1) {
-          progressBar.stop();
           writeFileSync(
             join(snapshotsPath, modelName, injectionLogFileName),
             snapshotDate.toISOString()
@@ -163,21 +173,12 @@ const injectRecordsBatch = async (
     modelName,
     snapshotDate
   );
-  const [, createResponse] = await prisma.$transaction([
-    prismaRecord.deleteMany({
-      where: deleteManyWhereFilter,
-    }),
-    prismaRecord.createMany({
-      data: batch.map(replaceNullWithDbNull(modelName)),
-    }),
-  ]);
-  if (createResponse.count !== batch.length) {
-    console.warn(
-      "createCount !== batch.length",
-      createResponse.count,
-      batch.length
-    );
-  }
+  await prismaRecord.deleteMany({
+    where: deleteManyWhereFilter,
+  });
+  await prismaRecord.createMany({
+    data: batch.map(replaceNullWithDbNull(modelName)),
+  });
 };
 
 const parseDeleteWhereFilter = (

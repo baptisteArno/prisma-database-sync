@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "generate": "prisma generate --schema src/schemas/source.prisma && prisma generate --schema src/schemas/target.prisma",
-    "reset:source": "prisma migrate reset --schema src/source.prisma",
-    "reset:target": "prisma migrate reset --schema src/target.prisma",
+    "reset:source": "prisma migrate reset --schema src/schemas/source.prisma",
+    "reset:target": "prisma migrate reset --schema src/schemas/target.prisma",
     "start": "tsx src/index.ts",
     "postinstall": "pnpm generate"
   },

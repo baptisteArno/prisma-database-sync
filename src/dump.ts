@@ -1,10 +1,10 @@
 import { PrismaClient } from "./prisma-clients/source";
 import { incrementalFieldInModel } from "./prisma-clients/source/utils";
 import { createWriteStream, existsSync, readFileSync } from "fs";
-import { SingleBar, Presets } from "cli-progress";
+import { Presets, MultiBar } from "cli-progress";
 import { join } from "path";
 import { mkdir, readdir } from "fs/promises";
-import { parseProgressBarFormat } from "./utils/parseProgressBarFormat";
+import { progressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
 
@@ -24,6 +24,10 @@ export type DumpProps = {
  * Read source database and generate timestamped snapshots
  */
 export const dump = async (props?: DumpProps) => {
+  const progressBar = new MultiBar(
+    { format: progressBarFormat },
+    Presets.legacy
+  );
   if (!existsSync(snapshotsPath)) await mkdir(snapshotsPath);
 
   isFirstExtract = true;
@@ -40,12 +44,13 @@ export const dump = async (props?: DumpProps) => {
             : true)
       )
       .map(async (modelName) => {
-        return extractRecords(modelName);
+        return extractRecords(modelName, progressBar);
       })
   );
+  progressBar.stop();
 };
 
-const extractRecords = async (modelName: ModelName) => {
+const extractRecords = async (modelName: ModelName, progressBar) => {
   const now = new Date();
   const incrementalField = incrementalFieldInModel[modelName];
   const filter = await parseFilter(modelName, now);
@@ -72,13 +77,8 @@ const extractRecords = async (modelName: ModelName) => {
   let skip = 0;
   let batch = [];
   let totalDumped = 0;
-  const progressBar = new SingleBar(
-    {
-      format: parseProgressBarFormat(modelName),
-    },
-    Presets.legacy
-  );
-  progressBar.start(totalRecords, 0);
+  const progress = progressBar.create(totalRecords, 0);
+  progress.update(0, { modelName });
   do {
     if (totalDumped > 1) stream.write(",");
     batch = await prismaRecord.findMany({
@@ -89,13 +89,12 @@ const extractRecords = async (modelName: ModelName) => {
     });
     stream.write(JSON.stringify(batch).slice(1, -1));
     totalDumped += batch.length;
-    progressBar.update(totalDumped);
+    progress.update(totalDumped);
     skip += take;
   } while (batch.length >= take);
 
   stream.write("]");
   stream.end();
-  progressBar.stop();
 };
 
 const parseFilter = async (recordName: ModelName, now: Date) => {
