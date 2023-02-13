@@ -41,9 +41,7 @@ export const main = async () => {
       await dump();
       break;
     case "inject":
-      await inject({
-        order: ["user", "workspace", "dashboardFolder", "typebot", "result"],
-      });
+      await inject();
       break;
   }
 };

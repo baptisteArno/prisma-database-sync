@@ -32,21 +32,21 @@ export const dump = async (props?: DumpProps) => {
 
   isFirstExtract = true;
 
-  await Promise.all(
-    (Object.keys(incrementalFieldInModel) as ModelName[])
-      .filter(
-        (ModelName) =>
-          (props?.includeTables
-            ? props.includeTables.includes(ModelName as ModelName)
-            : true) &&
-          (props?.excludeTables
-            ? !props.excludeTables.includes(ModelName as ModelName)
-            : true)
-      )
-      .map(async (modelName) => {
-        return extractRecords(modelName, progressBar);
-      })
+  const modelsToExtract = (
+    Object.keys(incrementalFieldInModel) as ModelName[]
+  ).filter(
+    (ModelName) =>
+      (props?.includeTables
+        ? props.includeTables.includes(ModelName as ModelName)
+        : true) &&
+      (props?.excludeTables
+        ? !props.excludeTables.includes(ModelName as ModelName)
+        : true)
   );
+
+  for (const modelToExtract of modelsToExtract) {
+    await extractRecords(modelToExtract, progressBar);
+  }
   progressBar.stop();
 };
 

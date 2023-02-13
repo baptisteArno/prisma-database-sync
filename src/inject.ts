@@ -29,7 +29,7 @@ const injectionLogFileName = "latestSnapshotInjected.log";
 const snapshotsPath = join(__dirname, "snapshots");
 
 const parallelQueries = 100;
-const totalRowsPerQuery = 1000;
+const totalRowsPerQuery = 100;
 
 export type InjectProps = {
   includeTables?: ModelName[];
@@ -84,7 +84,8 @@ export const inject = async (props?: InjectProps) => {
       await injectRecords(
         modelName as ModelName,
         snapshotToInject,
-        progressBar
+        progressBar,
+        latestSnapshotInjected === undefined
       );
     }
   }
@@ -94,7 +95,8 @@ export const inject = async (props?: InjectProps) => {
 const injectRecords = async (
   modelName: ModelName,
   snapshotDate: Date,
-  progressBar
+  progressBar,
+  isFirstInjection: boolean
 ) =>
   new Promise<void>(async (resolve, reject) => {
     const filePath = join(
@@ -125,7 +127,12 @@ const injectRecords = async (
         if (key === listSize - 1 || chunks.length === parallelQueries) {
           await Promise.all(
             chunks.map((chunk) =>
-              injectRecordsBatch(chunk, modelName, snapshotDate)
+              injectRecordsBatch(
+                chunk,
+                modelName,
+                snapshotDate,
+                isFirstInjection
+              )
             )
           );
           totalInjected += chunks.reduce((acc, cur) => acc + cur.length, 0);
@@ -165,7 +172,8 @@ const computeListSize = (filePath: string): Promise<number> =>
 const injectRecordsBatch = async (
   batch: any[],
   modelName: ModelName,
-  snapshotDate: Date
+  snapshotDate: Date,
+  isFirstInjection: boolean
 ) => {
   const prismaRecord = prisma[modelName] as any;
   const deleteManyWhereFilter = parseDeleteWhereFilter(
@@ -173,12 +181,20 @@ const injectRecordsBatch = async (
     modelName,
     snapshotDate
   );
-  await prismaRecord.deleteMany({
-    where: deleteManyWhereFilter,
-  });
-  await prismaRecord.createMany({
-    data: batch.map(replaceNullWithDbNull(modelName)),
-  });
+
+  return prisma.$transaction([
+    ...(isFirstInjection
+      ? []
+      : [
+          prismaRecord.deleteMany({
+            where: deleteManyWhereFilter,
+          }),
+        ]),
+    prismaRecord.createMany({
+      data: batch.map(replaceNullWithDbNull(modelName)),
+      skipDuplicates: true,
+    }),
+  ]);
 };
 
 const parseDeleteWhereFilter = (
