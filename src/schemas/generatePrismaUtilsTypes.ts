@@ -16,7 +16,7 @@ generatorHandler({
     const models = options.dmmf.datamodel.models.map((model) => {
       const idFields = model.fields.filter((field) => field.isId);
       const uniqueFields = model.fields.filter((field) => field.isUnique);
-      const groupedUniqueFields = model.uniqueFields.shift();
+      const groupedUniqueFields = model.uniqueFields?.shift();
       return {
         name: camelize(model.name),
         incrementalField:
