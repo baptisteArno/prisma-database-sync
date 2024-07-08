@@ -1,9 +1,4 @@
-import { Prisma, PrismaClient } from "./prisma-clients/target";
-import {
-  uniqueFields,
-  nullableJsonFields,
-  incrementalFieldInModel,
-} from "./prisma-clients/target/utils";
+import { MultiBar, Presets } from "cli-progress";
 import {
   createReadStream,
   existsSync,
@@ -12,10 +7,16 @@ import {
   writeFileSync,
 } from "fs";
 import { join } from "path";
-import { streamArray } from "stream-json/streamers/StreamArray";
-import { parser } from "stream-json";
-import { MultiBar, Presets } from "cli-progress";
 import { chain } from "stream-chain";
+import { parser } from "stream-json";
+import { streamArray } from "stream-json/streamers/StreamArray";
+import { Prisma, PrismaClient } from "./prisma-clients/target";
+import {
+  incrementalFieldInModel,
+  nullableJsonFields,
+  uniqueFields,
+} from "./prisma-clients/target/utils";
+import { fileName } from "./utils/fileName";
 import { progressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
@@ -67,7 +68,10 @@ export const inject = async (props?: InjectProps) => {
         ).toString()
       : undefined;
     const snapshotsToInject = readdirSync(join(snapshotsPath, modelName))
-      .map((snapshot) => new Date(snapshot.split(".json")[0]))
+      .map((snapshot) => {
+        let newName = fileName.transformToValidISOString(snapshot);
+        return new Date(newName.split(".json")[0]);
+      })
       .filter((snapshot) => !isNaN(snapshot.getTime()))
       .filter((snapshot) =>
         latestSnapshotInjected
@@ -102,7 +106,7 @@ const injectRecords = async (
     const filePath = join(
       snapshotsPath,
       modelName,
-      `${snapshotDate.toISOString()}.json`
+      fileName.transformToValidFilename(snapshotDate.toISOString())
     );
 
     const listSize = await computeListSize(filePath);
