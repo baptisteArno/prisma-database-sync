@@ -1,9 +1,10 @@
+import { MultiBar, Presets } from "cli-progress";
+import { createWriteStream, existsSync, readFileSync } from "fs";
+import { mkdir, readdir } from "fs/promises";
+import { join } from "path";
 import { PrismaClient } from "./prisma-clients/source";
 import { incrementalFieldInModel } from "./prisma-clients/source/utils";
-import { createWriteStream, existsSync, readFileSync } from "fs";
-import { Presets, MultiBar } from "cli-progress";
-import { join } from "path";
-import { mkdir, readdir } from "fs/promises";
+import { fileName } from "./utils/fileName";
 import { progressBarFormat } from "./utils/parseProgressBarFormat";
 
 type ModelName = keyof typeof incrementalFieldInModel;
@@ -69,10 +70,16 @@ const extractRecords = async (modelName: ModelName, progressBar) => {
     console.log("\n------------------ Extracting ------------------\n");
   }
   const currentSnapshotPath = join(snapshotsPath, modelName);
+
   if (!existsSync(currentSnapshotPath)) await mkdir(currentSnapshotPath);
-  const stream = createWriteStream(
-    join(currentSnapshotPath, `${now.toISOString()}.json`)
+
+  const currentStreamPath = join(
+    currentSnapshotPath,
+    fileName.transformToValidFilename(now.toISOString())
   );
+
+  const stream = createWriteStream(currentStreamPath);
+
   stream.write("[");
   let skip = 0;
   let batch = [];
