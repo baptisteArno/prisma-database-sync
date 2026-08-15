@@ -1,3 +1,5 @@
+
+
 <p align="center">
   <img src="./.github/images/readme-illustration.png" width="500px" alt="Readme illustration">
   <h1 align="center">Prisma Databases Sync</h1>
@@ -44,7 +46,7 @@ This library has 3 functions `dump`, `inject`, `sync`:
 
 - `dump` reads your source database and generate timestamped snapshots
 - `inject` injects the previously imported snapshots chronologically
-- `sync` executes dump and restore with a set interval
+- `sync` executes dump and inject with a set interval
 
 This is perfect if you are planning on migrating to another database in production. The first dump will be quite big as it will pull all the data from the beginning. Subsequent dumps will be tiny.
 
